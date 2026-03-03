@@ -78,7 +78,7 @@ const Index = () => {
           whileTap={{ scale: 0.97 }}
           className="mt-4 px-8 py-3 rounded-full border-2 border-foreground bg-foreground/10 font-body text-lg tracking-widest text-foreground hover:bg-foreground hover:text-background transition-colors cursor-pointer"
         >
-          enter world →
+          enter world
         </motion.button>
       </div>
     </div>
