@@ -14,11 +14,11 @@ export default {
   	},
   	fontFamily: {
   		display: [
-  			'Playfair Display"',
+  			'Playfair Display',
   			'serif'
   		],
   		body: [
-  			'Cormorant Garamond"',
+  			'Lora',
   			'serif'
   		]
   	},
