@@ -1,7 +1,7 @@
 import avatar from "@/assets/avatar.png";
 import cityscape from "@/assets/cityscape-sketch.png";
-import { motion } from "framer-motion";
-import { Mail, Linkedin, Instagram, ArrowRight, Sparkles, BookOpen, Briefcase } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mail, Linkedin, Instagram, ArrowRight, Sparkles, BookOpen, Briefcase, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 const container = {
@@ -42,6 +42,7 @@ const MacDots = () => (
 
 const Home = () => {
   const [noteContent, setNoteContent] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const today = new Date();
@@ -74,8 +75,12 @@ const Home = () => {
 
       <div className="relative z-10 flex min-h-screen">
         {/* LEFT PANEL — Summary Dashboard */}
-        <div className="w-[340px] shrink-0 border-r border-border bg-card/40 backdrop-blur-sm overflow-y-auto">
-          <div className="p-4">
+        <motion.div
+          animate={{ width: collapsed ? 0 : 340 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+          className="shrink-0 border-r border-border bg-card/40 backdrop-blur-sm overflow-hidden"
+        >
+          <div className="w-[340px] p-4 h-full overflow-y-auto">
             {/* Header */}
             <div className="mb-5">
               <h2 className="font-display italic text-xl text-foreground/70">cindy's world</h2>
@@ -177,7 +182,7 @@ const Home = () => {
               </div>
             </motion.div>
           </div>
-        </div>
+        </motion.div>
 
         {/* RIGHT PANEL — Today (Apple Notes style) */}
         <div className="flex-1 overflow-y-auto bg-background">
@@ -189,6 +194,13 @@ const Home = () => {
           >
             {/* Notes toolbar */}
             <div className="flex items-center justify-between mb-2">
+              <button
+                onClick={() => setCollapsed(!collapsed)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
+                aria-label={collapsed ? "Show sidebar" : "Hide sidebar"}
+              >
+                {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              </button>
               <p className="font-body text-xs tracking-widest text-muted-foreground uppercase">{formattedDate}</p>
             </div>
 
