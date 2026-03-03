@@ -12,6 +12,10 @@ export default {
         "2xl": "1400px",
       },
     },
+    fontFamily: {
+      display: ['"Playfair Display"', 'serif'],
+      body: ['"Cormorant Garamond"', 'serif'],
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
