@@ -130,69 +130,9 @@ const WritingAvatar = () => (
   </motion.div>
 );
 
-// --- Types ---
-
-interface PinItem {
-  id: string;
-  type: "note" | "photo" | "mood" | "moment";
-  content: string;
-  caption?: string;
-  tags: string[];
-  checklist?: { text: string; checked: boolean }[];
-  mood?: string;
-  createdAt: number;
-  archived: boolean;
-  visibility: "public" | "private";
-}
-
-interface ChatMessage {
-  id: string;
-  name: string;
-  message: string;
-  createdAt: number;
-  isOwner?: boolean;
-}
-
-const STORAGE_KEY = "cindy-today-pins";
-const CHAT_KEY = "cindy-chat-messages";
-
-const loadPins = (): PinItem[] => {
-  try {
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return raw.map((p: any) => ({ ...p, tags: p.tags || [], checklist: p.checklist || undefined, visibility: p.visibility || "private" }));
-  } catch {
-    localStorage.removeItem(STORAGE_KEY);
-    return [];
-  }
-};
-const savePins = (pins: PinItem[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pins));
-  } catch (e) {
-    console.warn("localStorage quota exceeded, pruning photo data...");
-    const pruned = pins.map((p) => {
-      if (p.type === "photo" && p.archived) {
-        return { ...p, content: "" };
-      }
-      return p;
-    });
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
-    } catch {
-      const aggressive = pruned.filter((p) => p.type !== "photo" || !p.archived);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(aggressive));
-      } catch {
-        // Give up silently
-      }
-    }
-  }
-};
-
-const loadChatMessages = (): ChatMessage[] => {
-  try { return JSON.parse(localStorage.getItem(CHAT_KEY) || "[]"); } catch { return []; }
-};
-const saveChatMessages = (msgs: ChatMessage[]) => localStorage.setItem(CHAT_KEY, JSON.stringify(msgs));
+// --- Types (re-exported from hook) ---
+import { useJournalEntries, useChatMessages } from "@/hooks/use-journal";
+import type { PinItem, ChatMessage } from "@/hooks/use-journal";
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -248,12 +188,12 @@ const Home = () => {
   const isOwner = new URLSearchParams(window.location.search).has("admin");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [pins, setPins] = useState<PinItem[]>(loadPins);
+  const { pins, setPins, addPin, updatePin, deletePin: deletePinDb } = useJournalEntries();
+  const { chatMessages, sendMessage } = useChatMessages();
   const [showArchive, setShowArchive] = useState(false);
   const [noteContent, setNoteContent] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [archiveFilter, setArchiveFilter] = useState<string | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(loadChatMessages);
   const [chatInput, setChatInput] = useState("");
   const [chatName, setChatName] = useState(() => localStorage.getItem("cindy-chat-name") || "");
   const [showNameInput, setShowNameInput] = useState(false);
@@ -275,8 +215,7 @@ const Home = () => {
     weekday: "long", month: "long", day: "numeric", year: "numeric",
   });
 
-  useEffect(() => { savePins(pins); }, [pins]);
-  useEffect(() => { saveChatMessages(chatMessages); }, [chatMessages]);
+  // Data is now persisted via Supabase hooks
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -330,53 +269,52 @@ const Home = () => {
     Array.from(files).forEach((file) => {
       const reader = new FileReader();
       reader.onload = () => {
-        setPins((prev) => [{
-          id: crypto.randomUUID(), type: "photo", content: reader.result as string,
-          caption: "", tags: [...selectedTags], createdAt: Date.now(), archived: false, visibility: viewMode,
-        }, ...prev]);
+        addPin({
+          type: "photo", content: reader.result as string,
+          caption: "", tags: [...selectedTags], archived: false, visibility: viewMode,
+        });
       };
       reader.readAsDataURL(file);
     });
     e.target.value = "";
-  }, [selectedTags, viewMode]);
+  }, [selectedTags, viewMode, addPin]);
 
   const saveNote = () => {
     if (!noteContent.trim()) return;
     const checklist = parseChecklist(noteContent);
-    setPins((prev) => [{
-      id: crypto.randomUUID(), type: "note", content: noteContent.trim(),
-      tags: [...selectedTags], checklist, createdAt: Date.now(), archived: false, visibility: viewMode,
-    }, ...prev]);
+    addPin({
+      type: "note", content: noteContent.trim(),
+      tags: [...selectedTags], checklist, archived: false, visibility: viewMode,
+    });
     setNoteContent("");
     setSelectedTags([]);
   };
 
   const toggleCheckItem = (pinId: string, idx: number) => {
-    setPins((prev) => prev.map((p) => {
-      if (p.id !== pinId || !p.checklist) return p;
-      const newChecklist = p.checklist.map((item, i) =>
-        i === idx ? { ...item, checked: !item.checked } : item
-      );
-      const lines = p.content.split("\n");
-      let checkIdx = 0;
-      const newLines = lines.map((line) => {
-        if (line.startsWith("☐ ") || line.startsWith("☑ ")) {
-          if (checkIdx === idx) {
-            checkIdx++;
-            return newChecklist[idx].checked ? `☑ ${newChecklist[idx].text}` : `☐ ${newChecklist[idx].text}`;
-          }
+    const pin = pins.find((p) => p.id === pinId);
+    if (!pin || !pin.checklist) return;
+    const newChecklist = pin.checklist.map((item, i) =>
+      i === idx ? { ...item, checked: !item.checked } : item
+    );
+    const lines = pin.content.split("\n");
+    let checkIdx = 0;
+    const newLines = lines.map((line) => {
+      if (line.startsWith("☐ ") || line.startsWith("☑ ")) {
+        if (checkIdx === idx) {
           checkIdx++;
+          return newChecklist[idx].checked ? `☑ ${newChecklist[idx].text}` : `☐ ${newChecklist[idx].text}`;
         }
-        return line;
-      });
-      return { ...p, checklist: newChecklist, content: newLines.join("\n") };
-    }));
+        checkIdx++;
+      }
+      return line;
+    });
+    updatePin(pinId, { checklist: newChecklist, content: newLines.join("\n") });
   };
 
-  const archivePin = (id: string) => setPins((prev) => prev.map((p) => p.id === id ? { ...p, archived: true } : p));
-  const unarchivePin = (id: string) => setPins((prev) => prev.map((p) => p.id === id ? { ...p, archived: false } : p));
-  const deletePin = (id: string) => setPins((prev) => prev.filter((p) => p.id !== id));
-  const updateCaption = (id: string, caption: string) => setPins((prev) => prev.map((p) => p.id === id ? { ...p, caption } : p));
+  const archivePin = (id: string) => updatePin(id, { archived: true });
+  const unarchivePin = (id: string) => updatePin(id, { archived: false });
+  const deletePin = (id: string) => deletePinDb(id);
+  const updateCaption = (id: string, caption: string) => updatePin(id, { caption });
 
   const shareLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -388,9 +326,7 @@ const Home = () => {
     if (!chatInput.trim()) return;
     const name = chatName.trim() || "Anonymous";
     localStorage.setItem("cindy-chat-name", name);
-    setChatMessages((prev) => [...prev, {
-      id: crypto.randomUUID(), name, message: chatInput.trim(), createdAt: Date.now(),
-    }]);
+    sendMessage(name, chatInput.trim());
     setChatInput("");
     chatInputRef.current?.focus();
   };
@@ -734,7 +670,7 @@ const Home = () => {
                           <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={addPhoto} />
                           {["😊", "😌", "🔥", "😔"].map((emoji) => (
                             <button key={emoji} onClick={() => {
-                              setPins((prev) => [{ id: crypto.randomUUID(), type: "mood" as const, content: emoji, tags: [], createdAt: Date.now(), archived: false, visibility: viewMode }, ...prev]);
+                              addPin({ type: "mood" as const, content: emoji, tags: [], archived: false, visibility: viewMode });
                             }} className="text-base p-1 opacity-40 hover:opacity-100 transition-all">{emoji}</button>
                           ))}
                         </div>
