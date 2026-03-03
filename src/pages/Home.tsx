@@ -132,11 +132,12 @@ const WritingAvatar = () => (
 
 interface PinItem {
   id: string;
-  type: "note" | "photo";
+  type: "note" | "photo" | "mood" | "moment";
   content: string;
   caption?: string;
   tags: string[];
   checklist?: { text: string; checked: boolean }[];
+  mood?: string;
   createdAt: number;
   archived: boolean;
 }
@@ -605,247 +606,251 @@ const Home = () => {
       {activeTab === "today" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="today">
           {isMobile ? (
-            /* ===== MOBILE: Journal-style Today ===== */
-            <div className="px-5 pb-8">
-              {/* Big title */}
-              <motion.h1
-                className="font-display italic text-5xl text-foreground mt-2 mb-6"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-              >
-                Today
-              </motion.h1>
+            /* ===== MOBILE: Living Timeline ===== */
+            <div className="pb-8">
+              {/* Time-aware hero */}
+              <div className="px-5 pt-2 pb-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-1"
+                >
+                  <p className="font-body text-sm text-muted-foreground/50">
+                    {getGreeting()}, cindy
+                  </p>
+                  <h1 className="font-display italic text-5xl text-foreground mt-1">Today</h1>
+                </motion.div>
 
-              {/* Mobile tab switcher: Today / Archive */}
-              <div className="flex mb-5">
-                <div className="flex bg-card rounded-2xl border border-border p-1 w-full">
-                  <button
-                    onClick={() => setShowArchive(false)}
-                    className={`flex-1 py-2.5 rounded-xl font-body text-sm transition-all ${
-                      !showArchive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    Today
-                  </button>
-                  <button
-                    onClick={() => setShowArchive(true)}
-                    className={`flex-1 py-2.5 rounded-xl font-body text-sm transition-all ${
-                      showArchive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
-                    }`}
-                  >
-                    Archive
-                  </button>
-                </div>
+                {/* Context strip — what's happening */}
+                <motion.div
+                  className="flex gap-3 mt-5 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15 }}
+                >
+                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-card border border-border shrink-0">
+                    <span className="text-lg">☀️</span>
+                    <div>
+                      <p className="font-body text-xs text-muted-foreground/50">NYC</p>
+                      <p className="font-body text-sm text-foreground">72°F</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-card border border-border shrink-0">
+                    <span className="text-lg">📅</span>
+                    <div>
+                      <p className="font-body text-xs text-muted-foreground/50">Next up</p>
+                      <p className="font-body text-sm text-foreground">Coffee w/ Sarah</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-card border border-border shrink-0">
+                    <span className="text-lg">💬</span>
+                    <div>
+                      <p className="font-body text-xs text-muted-foreground/50">Messages</p>
+                      <p className="font-body text-sm text-foreground">{chatMessages.length} new</p>
+                    </div>
+                  </div>
+                </motion.div>
               </div>
 
-              {!showArchive ? (
-                <>
-                  {/* Tag pills - horizontal scroll */}
-                  <div className="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-1 px-1 scrollbar-none">
-                    {Object.entries(TAGS).slice(0, 5).map(([key, config]) => {
-                      const Icon = config.icon;
-                      const isSelected = selectedTags.includes(key);
-                      return (
-                        <button
-                          key={key}
-                          onClick={() => selectTag(key)}
-                          className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-body text-sm whitespace-nowrap shrink-0 transition-all ${
-                            isSelected
-                              ? `${config.color} ring-1 ring-accent/20`
-                              : "bg-card border border-border text-muted-foreground"
-                          }`}
-                        >
-                          <Icon size={14} />
-                          {config.label.toLowerCase()}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Minimal input */}
-                  <motion.div
-                    className="rounded-2xl border border-border bg-card p-4 mb-6"
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                  >
+              {/* Quick capture — text yourself */}
+              <motion.div
+                className="mx-5 mb-6"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="flex items-end gap-2 bg-card rounded-2xl border border-border p-3">
+                  <div className="flex-1">
                     <textarea
                       ref={textareaRef}
                       value={noteContent}
                       onChange={(e) => setNoteContent(e.target.value)}
-                      placeholder="What's on your mind..."
-                      className="w-full bg-transparent font-display italic text-lg text-foreground/80 leading-relaxed resize-none outline-none placeholder:text-muted-foreground/30 min-h-[60px]"
-                      onKeyDown={(e) => { if (e.key === "Enter" && e.metaKey) saveNote(); }}
+                      placeholder="what's on your mind..."
+                      className="w-full bg-transparent font-body text-base text-foreground/80 leading-relaxed resize-none outline-none placeholder:text-muted-foreground/30 min-h-[40px] max-h-[120px]"
+                      rows={1}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && noteContent.trim()) { e.preventDefault(); saveNote(); } }}
                     />
-                    {selectedTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mb-3">
-                        {selectedTags.map((tag) => {
-                          const config = TAGS[tag];
-                          const Icon = config?.icon;
-                          return (
-                            <button key={tag} onClick={() => selectTag(tag)}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-body transition-all ${config?.color || "bg-muted text-muted-foreground"}`}>
-                              {Icon && <Icon size={10} />} #{tag} <X size={10} />
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border font-body text-sm text-muted-foreground">
-                        <Camera size={14} /> Photo
+                    <div className="flex items-center gap-2 mt-1">
+                      <button onClick={() => fileInputRef.current?.click()} className="p-1.5 rounded-full text-muted-foreground/40 hover:text-muted-foreground">
+                        <Camera size={16} />
                       </button>
                       <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={addPhoto} />
-                      <AnimatePresence>
-                        {noteContent.trim() && (
-                          <motion.button
-                            onClick={saveNote}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-foreground text-background font-body text-sm ml-auto"
-                          >
-                            <Plus size={14} /> Pin
-                          </motion.button>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </motion.div>
-
-                  {/* Widget grid - 2 columns, bigger cards */}
-                  {activePins.length > 0 && (
-                    <motion.div
-                      className="grid grid-cols-2 gap-3"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      <AnimatePresence>
-                        {activePins.map((pin) => {
-                          const hasChecklist = pin.checklist && pin.checklist.length > 0;
-                          const completedCount = pin.checklist?.filter((c) => c.checked).length || 0;
-                          const totalCount = pin.checklist?.length || 0;
-                          const primaryTag = pin.tags[0];
-                          const tagConfig = primaryTag ? TAGS[primaryTag] : null;
-                          const TagIcon = tagConfig?.icon;
-                          const isLarge = pin.type === "photo" || (pin.content.length > 150);
-
-                          return (
-                            <motion.div
-                              key={pin.id}
-                              layout
-                              initial={{ opacity: 0, scale: 0.95 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              onClick={() => setExpandedPinId(pin.id)}
-                              className={`rounded-2xl border border-border bg-card overflow-hidden group relative cursor-pointer active:scale-[0.97] transition-transform ${isLarge ? "col-span-2" : ""}`}
-                            >
-                              {pin.type === "photo" ? (
-                                <div>
-                                  <img src={pin.content} alt="" className="w-full object-cover h-48 rounded-t-2xl" />
-                                  <div className="p-4">
-                                    <p className="font-body text-xs tracking-widest text-muted-foreground/50 uppercase mb-1">Photo</p>
-                                    <p className="font-body text-sm text-foreground/70">{pin.caption || "Tap to add caption"}</p>
-                                  </div>
-                                </div>
-                              ) : hasChecklist ? (
-                                <div className="p-4">
-                                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center mb-3">
-                                    <Check size={16} className="text-accent" />
-                                  </div>
-                                  <p className="font-body text-[10px] tracking-[0.15em] text-accent uppercase mb-2">
-                                    {tagConfig?.label || "Tasks"}
-                                  </p>
-                                  {pin.content.split("\n").filter((l) => !l.startsWith("☐ ") && !l.startsWith("☑ ") && l.trim()).slice(0, 1).map((line, i) => (
-                                    <h3 key={i} className="font-display text-lg text-foreground mb-3 leading-snug">{line}</h3>
-                                  ))}
-                                  <div className="space-y-2.5">
-                                    {pin.checklist!.slice(0, 3).map((ci, idx) => (
-                                      <div key={idx} className="flex items-center gap-3">
-                                        {ci.checked ? (
-                                          <div className="w-5 h-5 rounded-md bg-accent flex items-center justify-center shrink-0">
-                                            <Check size={12} className="text-background" />
-                                          </div>
-                                        ) : (
-                                          <div className="w-5 h-5 rounded-md border-2 border-border shrink-0" />
-                                        )}
-                                        <span className={`font-body text-sm ${ci.checked ? "line-through text-muted-foreground/40" : "text-foreground/80"}`}>
-                                          {ci.text || "..."}
-                                        </span>
-                                      </div>
-                                    ))}
-                                    {pin.checklist!.length > 3 && (
-                                      <p className="font-body text-xs text-muted-foreground/40 pl-8">+{pin.checklist!.length - 3} more</p>
-                                    )}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="p-4">
-                                  {TagIcon && (
-                                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center mb-3">
-                                      <TagIcon size={16} className="text-accent/60" />
-                                    </div>
-                                  )}
-                                  <p className="font-body text-[10px] tracking-[0.15em] text-accent uppercase mb-2">
-                                    {tagConfig?.label || "Note"}
-                                  </p>
-                                  {(() => {
-                                    const lines = pin.content.split("\n");
-                                    const title = lines[0];
-                                    const body = lines.slice(1).join("\n").trim();
-                                    return (
-                                      <>
-                                        <h3 className="font-display text-lg text-foreground mb-2 leading-snug line-clamp-2">{title}</h3>
-                                        {body && <p className="font-body text-sm text-muted-foreground leading-relaxed line-clamp-3">{body}</p>}
-                                      </>
-                                    );
-                                  })()}
-                                  <ArrowRight size={16} className="text-muted-foreground/30 mt-3" />
-                                </div>
-                              )}
-                            </motion.div>
-                          );
-                        })}
-                      </AnimatePresence>
-                    </motion.div>
-                  )}
-
-                  {activePins.length === 0 && (
-                    <motion.div className="text-center py-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-                      <p className="font-display italic text-2xl text-muted-foreground/25 mb-2">nothing yet</p>
-                      <p className="font-body text-sm text-muted-foreground/30">tap a tag above or just start writing</p>
-                    </motion.div>
-                  )}
-                </>
-              ) : (
-                /* Archive view */
-                <div>
-                  {archiveTags.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 mb-4">
-                      <button onClick={() => setArchiveFilter(null)}
-                        className={`px-3 py-1.5 rounded-full text-sm font-body transition-all ${!archiveFilter ? "bg-foreground text-background" : "bg-card border border-border text-muted-foreground"}`}>
-                        All
-                      </button>
-                      {archiveTags.map((tag) => (
-                        <button key={tag} onClick={() => setArchiveFilter(archiveFilter === tag ? null : tag)}
-                          className={`px-3 py-1.5 rounded-full text-sm font-body transition-all ${
-                            archiveFilter === tag ? "bg-foreground text-background" : "bg-card border border-border text-muted-foreground"
-                          }`}>
-                          {tag}
+                      {/* Mood quick-add */}
+                      {["😊", "😌", "🔥", "😔", "🤔"].map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => {
+                            setPins((prev) => [{
+                              id: crypto.randomUUID(), type: "mood" as const, content: emoji,
+                              tags: [], createdAt: Date.now(), archived: false,
+                            }, ...prev]);
+                          }}
+                          className="text-lg hover:scale-125 transition-transform"
+                        >
+                          {emoji}
                         </button>
                       ))}
                     </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-3">
-                    {filteredArchive.map((pin) => renderWidget(pin, true))}
                   </div>
-                  {filteredArchive.length === 0 && (
-                    <p className="text-center font-body text-sm text-muted-foreground/30 py-12">no archived pins</p>
-                  )}
+                  <AnimatePresence>
+                    {noteContent.trim() && (
+                      <motion.button
+                        onClick={saveNote}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="p-2.5 rounded-full bg-foreground text-background shrink-0 mb-0.5"
+                      >
+                        <Send size={14} />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
                 </div>
-              )}
+              </motion.div>
+
+              {/* Living Timeline */}
+              <div className="relative">
+                {/* Timeline line */}
+                <div className="absolute left-8 top-0 bottom-0 w-px bg-border/50" />
+
+                <AnimatePresence>
+                  {activePins.length === 0 && (
+                    <motion.div
+                      className="text-center py-16 relative z-10"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      <p className="font-display italic text-2xl text-muted-foreground/20 mb-2">your day starts here</p>
+                      <p className="font-body text-sm text-muted-foreground/25">type a thought, drop a mood, or snap a photo</p>
+                    </motion.div>
+                  )}
+
+                  {activePins.map((pin, index) => {
+                    const time = new Date(pin.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+                    const hasChecklist = pin.checklist && pin.checklist.length > 0;
+                    const primaryTag = pin.tags[0];
+                    const tagConfig = primaryTag ? TAGS[primaryTag] : null;
+
+                    return (
+                      <motion.div
+                        key={pin.id}
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -50 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="relative flex gap-4 px-5 mb-1"
+                      >
+                        {/* Timeline dot */}
+                        <div className="relative z-10 mt-4 shrink-0">
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                            pin.type === "mood"
+                              ? "border-transparent bg-transparent text-lg"
+                              : pin.type === "photo"
+                              ? "border-accent/30 bg-accent/10"
+                              : "border-border bg-card"
+                          }`}>
+                            {pin.type === "mood" ? (
+                              <span className="text-base">{pin.content}</span>
+                            ) : pin.type === "photo" ? (
+                              <Camera size={10} className="text-accent" />
+                            ) : hasChecklist ? (
+                              <Check size={10} className="text-muted-foreground" />
+                            ) : (
+                              <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Entry content */}
+                        <div
+                          className="flex-1 pb-5 group cursor-pointer"
+                          onClick={() => pin.type !== "mood" && setExpandedPinId(pin.id)}
+                        >
+                          <p className="font-body text-[10px] text-muted-foreground/35 mb-1.5 tracking-wider uppercase">{time}</p>
+
+                          {pin.type === "mood" ? (
+                            <motion.div
+                              className="flex items-center gap-3"
+                              initial={{ scale: 0.9 }}
+                              animate={{ scale: 1 }}
+                            >
+                              <span className="text-3xl">{pin.content}</span>
+                              <p className="font-body text-sm text-muted-foreground/40 italic">feeling {
+                                pin.content === "😊" ? "good" :
+                                pin.content === "😌" ? "peaceful" :
+                                pin.content === "🔥" ? "fired up" :
+                                pin.content === "😔" ? "low" :
+                                pin.content === "🤔" ? "thoughtful" : "something"
+                              }</p>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); deletePin(pin.id); }}
+                                className="ml-auto p-1 rounded-full opacity-0 group-hover:opacity-100 text-muted-foreground/30 transition-opacity"
+                              >
+                                <X size={12} />
+                              </button>
+                            </motion.div>
+                          ) : pin.type === "photo" ? (
+                            <div className="rounded-2xl overflow-hidden border border-border bg-card">
+                              <img src={pin.content} alt="" className="w-full object-cover max-h-56" />
+                              {pin.caption && (
+                                <p className="font-body text-sm text-foreground/60 p-3 italic">{pin.caption}</p>
+                              )}
+                              {!pin.caption && (
+                                <p className="font-body text-xs text-muted-foreground/30 p-3">tap to add a caption</p>
+                              )}
+                            </div>
+                          ) : hasChecklist ? (
+                            <div className="rounded-2xl border border-border bg-card p-4">
+                              {pin.content.split("\n").filter((l) => !l.startsWith("☐ ") && !l.startsWith("☑ ") && l.trim()).slice(0, 1).map((line, i) => (
+                                <p key={i} className="font-display text-base text-foreground mb-2">{line}</p>
+                              ))}
+                              <div className="space-y-2">
+                                {pin.checklist!.slice(0, 3).map((ci, idx) => (
+                                  <button key={idx} onClick={(e) => { e.stopPropagation(); toggleCheckItem(pin.id, idx); }}
+                                    className="flex items-center gap-2.5 w-full text-left">
+                                    {ci.checked ? (
+                                      <div className="w-5 h-5 rounded-md bg-accent flex items-center justify-center shrink-0">
+                                        <Check size={11} className="text-background" />
+                                      </div>
+                                    ) : (
+                                      <div className="w-5 h-5 rounded-md border-2 border-border shrink-0" />
+                                    )}
+                                    <span className={`font-body text-sm ${ci.checked ? "line-through text-muted-foreground/30" : "text-foreground/70"}`}>
+                                      {ci.text || "..."}
+                                    </span>
+                                  </button>
+                                ))}
+                                {pin.checklist!.length > 3 && (
+                                  <p className="font-body text-xs text-muted-foreground/30 pl-7">+{pin.checklist!.length - 3} more →</p>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="group-active:scale-[0.98] transition-transform">
+                              {(() => {
+                                const lines = pin.content.split("\n");
+                                const isShort = lines.length <= 2 && pin.content.length < 80;
+                                return isShort ? (
+                                  <p className="font-body text-base text-foreground/80 leading-relaxed">{pin.content}</p>
+                                ) : (
+                                  <div className="rounded-2xl border border-border bg-card p-4">
+                                    <p className="font-display text-base text-foreground leading-snug mb-1">{lines[0]}</p>
+                                    {lines.length > 1 && (
+                                      <p className="font-body text-sm text-muted-foreground/50 line-clamp-2">{lines.slice(1).join("\n")}</p>
+                                    )}
+                                    <ArrowRight size={14} className="text-muted-foreground/20 mt-2" />
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </div>
             </div>
           ) : (
             /* ===== DESKTOP: Keep existing layout ===== */
