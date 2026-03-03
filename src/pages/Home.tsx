@@ -872,8 +872,8 @@ const Home = () => {
             /* ===== DESKTOP: Keep existing layout ===== */
             <>
               <div className="relative overflow-hidden" style={{ minHeight: 160 }}>
-                <div className="absolute inset-0 bg-contain bg-bottom bg-no-repeat opacity-[0.08]" style={{ backgroundImage: `url(${cityscape})` }} />
-                <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/30 to-background" />
+                <div className="absolute inset-0 bg-contain bg-bottom bg-no-repeat opacity-[0.25]" style={{ backgroundImage: `url(${cityscape})` }} />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/10 to-background/80" />
                 <div className="relative max-w-2xl mx-auto px-10 pt-4 pb-4">
                   <motion.p className="font-body text-sm text-muted-foreground/60 mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
                     {getGreeting()} ☀️
