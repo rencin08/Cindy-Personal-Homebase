@@ -395,7 +395,7 @@ const Home = () => {
   };
 
   const tabs = [
-    { id: "today" as const, label: "Today", icon: StickyNote },
+    { id: "today" as const, label: viewMode === "public" ? "My Story" : "Today", icon: StickyNote },
     { id: "calendar" as const, label: "Meet", icon: Calendar },
     { id: "messages" as const, label: "Messages", icon: MessageCircle },
   ];
@@ -671,23 +671,25 @@ const Home = () => {
                   </div>
 
 
-                  {/* Tag filter chips */}
-                  <div className="flex flex-wrap gap-2 mb-5">
-                    {Object.entries(TAGS).slice(0, 6).map(([key, config]) => {
-                      const Icon = config.icon;
-                      const isSelected = selectedTags.includes(key);
-                      return (
-                        <button key={key} onClick={() => selectTag(key)}
-                          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border font-body text-sm transition-all ${
-                            isSelected 
-                              ? "border-foreground bg-foreground/5 text-foreground" 
-                              : "border-border bg-background text-muted-foreground hover:border-foreground/30"
-                          }`}>
-                          <Icon size={14} /> {config.label.toLowerCase()}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {/* Tag filter chips - private only */}
+                  {viewMode === "private" && (
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {Object.entries(TAGS).slice(0, 6).map(([key, config]) => {
+                        const Icon = config.icon;
+                        const isSelected = selectedTags.includes(key);
+                        return (
+                          <button key={key} onClick={() => selectTag(key)}
+                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full border font-body text-sm transition-all ${
+                              isSelected 
+                                ? "border-foreground bg-foreground/5 text-foreground" 
+                                : "border-border bg-background text-muted-foreground hover:border-foreground/30"
+                            }`}>
+                            <Icon size={14} /> {config.label.toLowerCase()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Search bar for mobile public/storyboard mode */}
@@ -1002,7 +1004,7 @@ const Home = () => {
                   </motion.div>
                 )}
 
-                {archivedPins.length > 0 && (
+                {archivedPins.length > 0 && viewMode === "private" && (
                   <div className="mt-6 pt-4 border-t border-border/50 pb-8">
                     <button onClick={() => setShowArchive(!showArchive)}
                       className="flex items-center gap-2 font-body text-xs tracking-widest text-muted-foreground uppercase hover:text-foreground transition-colors w-full">
