@@ -6,9 +6,10 @@ import {
   Briefcase, PanelLeftClose, PanelLeftOpen, Plus, StickyNote,
   Archive, X, ChevronDown, ChevronUp, Camera, Calendar, Send, MessageCircle,
   Hash, Share2, Check, Square, CheckSquare, ShoppingCart, Lightbulb,
-  ListTodo, BookMarked, Utensils, Target, Pen, Menu, Heart, Zap
+  ListTodo, BookMarked, Utensils, Target, Pen, Menu, Heart, Zap, Eye, EyeOff
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Globe, Lock } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -140,6 +141,7 @@ interface PinItem {
   mood?: string;
   createdAt: number;
   archived: boolean;
+  visibility: "public" | "private";
 }
 
 interface ChatMessage {
@@ -156,7 +158,7 @@ const CHAT_KEY = "cindy-chat-messages";
 const loadPins = (): PinItem[] => {
   try {
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return raw.map((p: any) => ({ ...p, tags: p.tags || [], checklist: p.checklist || undefined }));
+    return raw.map((p: any) => ({ ...p, tags: p.tags || [], checklist: p.checklist || undefined, visibility: p.visibility || "private" }));
   } catch {
     localStorage.removeItem(STORAGE_KEY);
     return [];
@@ -254,6 +256,7 @@ const Home = () => {
   const [chatName, setChatName] = useState(() => localStorage.getItem("cindy-chat-name") || "");
   const [showNameInput, setShowNameInput] = useState(false);
   const [activeTab, setActiveTab] = useState<"today" | "calendar" | "messages">("today");
+  const [viewMode, setViewMode] = useState<"private" | "public">("private");
   const [shareToast, setShareToast] = useState(false);
   const [expandedPinId, setExpandedPinId] = useState<string | null>(null);
   const [canvasDate] = useState(() => {
@@ -291,7 +294,7 @@ const Home = () => {
     }
   }, [chatMessages, activeTab]);
 
-  const activePins = pins.filter((p) => !p.archived);
+  const activePins = pins.filter((p) => !p.archived && p.visibility === viewMode);
   const archivedPins = pins.filter((p) => p.archived);
   const filteredArchive = archiveFilter
     ? archivedPins.filter((p) => p.tags.includes(archiveFilter))
@@ -327,20 +330,20 @@ const Home = () => {
       reader.onload = () => {
         setPins((prev) => [{
           id: crypto.randomUUID(), type: "photo", content: reader.result as string,
-          caption: "", tags: [...selectedTags], createdAt: Date.now(), archived: false,
+          caption: "", tags: [...selectedTags], createdAt: Date.now(), archived: false, visibility: viewMode,
         }, ...prev]);
       };
       reader.readAsDataURL(file);
     });
     e.target.value = "";
-  }, [selectedTags]);
+  }, [selectedTags, viewMode]);
 
   const saveNote = () => {
     if (!noteContent.trim()) return;
     const checklist = parseChecklist(noteContent);
     setPins((prev) => [{
       id: crypto.randomUUID(), type: "note", content: noteContent.trim(),
-      tags: [...selectedTags], checklist, createdAt: Date.now(), archived: false,
+      tags: [...selectedTags], checklist, createdAt: Date.now(), archived: false, visibility: viewMode,
     }, ...prev]);
     setNoteContent("");
     setSelectedTags([]);
@@ -459,7 +462,7 @@ const Home = () => {
             <div className="flex-1 p-3 flex flex-col justify-center">
               <input type="text" value={pin.caption || ""} onChange={(e) => updateCaption(pin.id, e.target.value)}
                 placeholder="Caption..." className="w-full bg-transparent font-body text-xs text-foreground/70 outline-none placeholder:text-muted-foreground/40" />
-              <p className="font-body text-[10px] text-muted-foreground/40 mt-1">
+              <p className="font-body text-[10px] text-muted-foreground mt-1">
                 {new Date(pin.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </p>
             </div>
@@ -476,25 +479,25 @@ const Home = () => {
               <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
                 <motion.div className="h-full rounded-full bg-accent/50" animate={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }} />
               </div>
-              <span className="font-body text-[9px] text-muted-foreground/50">{completedCount}/{totalCount}</span>
+              <span className="font-body text-[9px] text-muted-foreground">{completedCount}/{totalCount}</span>
             </div>
             <div className="space-y-1">
               {pin.checklist!.slice(0, 4).map((ci, idx) => (
                 <button key={idx} onClick={() => !isArchived && toggleCheckItem(pin.id, idx)} className="flex items-center gap-2 w-full text-left group/item">
-                  {ci.checked ? <CheckSquare size={12} className="text-accent shrink-0" /> : <Square size={12} className="text-muted-foreground/30 shrink-0 group-hover/item:text-muted-foreground" />}
-                  <span className={`font-body text-xs truncate ${ci.checked ? "line-through text-muted-foreground/40" : "text-foreground/70"}`}>{ci.text || "..."}</span>
+                  {ci.checked ? <CheckSquare size={12} className="text-accent shrink-0" /> : <Square size={12} className="text-muted-foreground/50 shrink-0 group-hover/item:text-muted-foreground" />}
+                  <span className={`font-body text-xs truncate ${ci.checked ? "line-through text-muted-foreground" : "text-foreground"}`}>{ci.text || "..."}</span>
                 </button>
               ))}
               {pin.checklist!.length > 4 && (
-                <p className="font-body text-[10px] text-muted-foreground/40 pl-5">+{pin.checklist!.length - 4} more</p>
+                <p className="font-body text-[10px] text-muted-foreground pl-5">+{pin.checklist!.length - 4} more</p>
               )}
             </div>
           </div>
         ) : (
           <div className="p-3.5">
-            {TagIcon && <TagIcon size={13} className="text-accent/40 mb-1.5" />}
-            <p className="font-body text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap line-clamp-5">{pin.content}</p>
-            <p className="font-body text-[10px] text-muted-foreground/35 mt-2">
+            {TagIcon && <TagIcon size={13} className="text-accent mb-1.5" />}
+            <p className="font-body text-xs text-foreground leading-relaxed whitespace-pre-wrap line-clamp-5">{pin.content}</p>
+            <p className="font-body text-[10px] text-muted-foreground mt-2">
               {new Date(pin.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </p>
           </div>
@@ -510,9 +513,9 @@ const Home = () => {
     return (
       <div key={tagKey} className="mb-5">
         <div className="flex items-center gap-2 mb-2">
-          {Icon && <Icon size={13} className="text-muted-foreground/50" />}
-          <span className="font-body text-[11px] tracking-widest text-muted-foreground/50 uppercase">{config?.label || tagKey}</span>
-          <span className="font-body text-[10px] text-muted-foreground/30">{groupPins.length}</span>
+          {Icon && <Icon size={13} className="text-muted-foreground" />}
+          <span className="font-body text-[11px] tracking-widest text-muted-foreground uppercase">{config?.label || tagKey}</span>
+          <span className="font-body text-[10px] text-muted-foreground">{groupPins.length}</span>
         </div>
         <div className={`grid gap-2.5 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
           <AnimatePresence>
@@ -563,12 +566,6 @@ const Home = () => {
         <ArrowRight size={14} className="text-accent mt-3 group-hover:translate-x-1 transition-transform" />
       </motion.div>
 
-      {/* Quote Card */}
-      <motion.div variants={item} className="relative rounded-2xl bg-card border border-border p-5 text-center">
-        <MacDots />
-        <p className="font-display italic text-lg text-accent leading-snug mt-2">"Build the life you want to live."</p>
-        <span className="font-body text-xs tracking-widest text-muted-foreground mt-2 uppercase block">daily mantra</span>
-      </motion.div>
 
       {/* Small widgets */}
       <div className="grid grid-cols-2 gap-3">
@@ -616,7 +613,7 @@ const Home = () => {
               )}
             </div>
           ) : (
-            <p className="font-body text-sm text-muted-foreground/40">Start capturing moments to see your weekly digest</p>
+            <p className="font-body text-sm text-muted-foreground">Start capturing moments to see your weekly digest</p>
           );
         })()}
       </motion.div>
@@ -677,32 +674,33 @@ const Home = () => {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
                 {/* Header: Today + Date */}
                 <div className="px-6 pt-2 pb-4">
-                  <div className="flex items-baseline justify-between mb-5">
+                  <div className="flex items-baseline justify-between mb-3">
                     <h1 className="font-display text-4xl text-foreground">Today</h1>
-                    <p className="font-body text-sm text-muted-foreground">
+                    <p className="font-body text-sm text-foreground/60">
                       {today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </p>
                   </div>
 
-                  {/* Today / Archive tab switcher */}
+                  {/* Public / Private toggle */}
                   <div className="flex mb-5 bg-secondary rounded-xl p-1">
                     <button 
-                      onClick={() => setShowArchive(false)}
-                      className={`flex-1 py-2 rounded-lg font-body text-sm font-medium transition-all ${
-                        !showArchive ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"
+                      onClick={() => setViewMode("private")}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-body text-sm font-medium transition-all ${
+                        viewMode === "private" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"
                       }`}
                     >
-                      Today
+                      <Lock size={13} /> Private
                     </button>
                     <button 
-                      onClick={() => setShowArchive(true)}
-                      className={`flex-1 py-2 rounded-lg font-body text-sm font-medium transition-all ${
-                        showArchive ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"
+                      onClick={() => setViewMode("public")}
+                      className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg font-body text-sm font-medium transition-all ${
+                        viewMode === "public" ? "bg-background text-foreground shadow-xs" : "text-muted-foreground"
                       }`}
                     >
-                      Archive
+                      <Globe size={13} /> Public
                     </button>
                   </div>
+
 
                   {/* Tag filter chips */}
                   <div className="flex flex-wrap gap-2 mb-5">
@@ -743,7 +741,7 @@ const Home = () => {
                           <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={addPhoto} />
                           {["😊", "😌", "🔥", "😔"].map((emoji) => (
                             <button key={emoji} onClick={() => {
-                              setPins((prev) => [{ id: crypto.randomUUID(), type: "mood" as const, content: emoji, tags: [], createdAt: Date.now(), archived: false }, ...prev]);
+                              setPins((prev) => [{ id: crypto.randomUUID(), type: "mood" as const, content: emoji, tags: [], createdAt: Date.now(), archived: false, visibility: viewMode }, ...prev]);
                             }} className="text-base p-1 opacity-40 hover:opacity-100 transition-all">{emoji}</button>
                           ))}
                         </div>
@@ -767,8 +765,8 @@ const Home = () => {
                     if (displayPins.length === 0) {
                       return (
                         <motion.div className="text-center py-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                          <Pen size={20} className="text-muted-foreground/15 mx-auto mb-3" />
-                          <p className="font-display italic text-muted-foreground/20 text-lg">
+                          <Pen size={20} className="text-muted-foreground/40 mx-auto mb-3" />
+                          <p className="font-display italic text-muted-foreground text-lg">
                             {showArchive ? "no archived entries yet" : "your page awaits"}
                           </p>
                         </motion.div>
@@ -828,8 +826,8 @@ const Home = () => {
                                 <div className="space-y-2">
                                   {pin.checklist!.map((ci, idx) => (
                                     <button key={idx} onClick={(e) => { e.stopPropagation(); toggleCheckItem(pin.id, idx); }} className="flex items-center gap-2.5 w-full text-left">
-                                      {ci.checked ? <CheckSquare size={16} className="text-foreground shrink-0" /> : <Square size={16} className="text-muted-foreground/40 shrink-0" />}
-                                      <span className={`font-body text-sm ${ci.checked ? "line-through text-muted-foreground/40" : "text-foreground/80"}`}>{ci.text || "..."}</span>
+                                      {ci.checked ? <CheckSquare size={16} className="text-foreground shrink-0" /> : <Square size={16} className="text-muted-foreground shrink-0" />}
+                                      <span className={`font-body text-sm ${ci.checked ? "line-through text-muted-foreground" : "text-foreground"}`}>{ci.text || "..."}</span>
                                     </button>
                                   ))}
                                 </div>
@@ -875,10 +873,30 @@ const Home = () => {
                 <div className="absolute inset-0 bg-contain bg-bottom bg-no-repeat opacity-[0.25]" style={{ backgroundImage: `url(${cityscape})` }} />
                 <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/10 to-background/80" />
                 <div className="relative max-w-2xl mx-auto px-10 pt-4 pb-4">
-                  <motion.p className="font-body text-sm text-muted-foreground/60 mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                  <motion.p className="font-body text-sm text-foreground/60 mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
                     {getGreeting()} ☀️
                   </motion.p>
-                  <h1 className="font-display italic text-4xl md:text-5xl text-foreground mb-3 mt-1">Today</h1>
+                  <div className="flex items-center justify-between mb-3 mt-1">
+                    <h1 className="font-display italic text-4xl md:text-5xl text-foreground">Today</h1>
+                    <div className="flex items-center bg-secondary rounded-xl p-1 border border-border">
+                      <button 
+                        onClick={() => setViewMode("private")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs transition-all ${
+                          viewMode === "private" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Lock size={12} /> Private
+                      </button>
+                      <button 
+                        onClick={() => setViewMode("public")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs transition-all ${
+                          viewMode === "public" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Globe size={12} /> Public
+                      </button>
+                    </div>
+                  </div>
                   <WritingAvatar />
                 </div>
               </div>
@@ -953,9 +971,9 @@ const Home = () => {
                       {ungrouped.length > 0 && (
                         <div className="mb-5">
                           <div className="flex items-center gap-2 mb-2">
-                            <StickyNote size={13} className="text-muted-foreground/50" />
-                            <span className="font-body text-[11px] tracking-widest text-muted-foreground/50 uppercase">Notes</span>
-                            <span className="font-body text-[10px] text-muted-foreground/30">{ungrouped.length}</span>
+                            <StickyNote size={13} className="text-muted-foreground" />
+                            <span className="font-body text-[11px] tracking-widest text-muted-foreground uppercase">Notes</span>
+                            <span className="font-body text-[10px] text-muted-foreground">{ungrouped.length}</span>
                           </div>
                           <div className="grid grid-cols-2 gap-2.5">
                             <AnimatePresence>{ungrouped.map((pin) => renderWidget(pin))}</AnimatePresence>
@@ -969,10 +987,10 @@ const Home = () => {
                 {activePins.length === 0 && (
                   <motion.div className="text-center py-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
                     <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity }}>
-                      <StickyNote size={28} className="text-accent/20 mx-auto mb-3" />
+                      <StickyNote size={28} className="text-muted-foreground/40 mx-auto mb-3" />
                     </motion.div>
-                    <p className="font-body text-sm text-muted-foreground/40">pick a tag above to get started with a template</p>
-                    <p className="font-body text-xs text-muted-foreground/25 mt-1">or just start typing — anything goes</p>
+                    <p className="font-body text-sm text-muted-foreground">pick a tag above to get started with a template</p>
+                    <p className="font-body text-xs text-muted-foreground mt-1">or just start typing — anything goes</p>
                   </motion.div>
                 )}
 
