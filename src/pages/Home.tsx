@@ -336,91 +336,110 @@ const Home = () => {
     { id: "messages" as const, label: "Messages", icon: MessageCircle },
   ];
 
-  // Render a pin card
-  const renderPinCard = (pin: PinItem, isArchived = false) => {
+  // Determine widget size: "small" for short notes, "medium" for checklists, "large" for photos/long content
+  const getWidgetSize = (pin: PinItem): "small" | "medium" | "large" => {
+    if (pin.type === "photo") return "large";
+    if (pin.checklist && pin.checklist.length > 0) return "medium";
+    if (pin.content.length > 120 || pin.content.split("\n").length > 4) return "medium";
+    return "small";
+  };
+
+  // Group pins by their primary tag
+  const groupPinsByTag = (pinsList: PinItem[]) => {
+    const groups: Record<string, PinItem[]> = {};
+    const ungrouped: PinItem[] = [];
+    pinsList.forEach((pin) => {
+      if (pin.tags.length > 0) {
+        const primaryTag = pin.tags[0];
+        if (!groups[primaryTag]) groups[primaryTag] = [];
+        groups[primaryTag].push(pin);
+      } else {
+        ungrouped.push(pin);
+      }
+    });
+    return { groups, ungrouped };
+  };
+
+  // Compact widget card
+  const renderWidget = (pin: PinItem, isArchived = false) => {
+    const size = getWidgetSize(pin);
     const hasChecklist = pin.checklist && pin.checklist.length > 0;
     const completedCount = pin.checklist?.filter((c) => c.checked).length || 0;
     const totalCount = pin.checklist?.length || 0;
+    const primaryTag = pin.tags[0];
+    const tagConfig = primaryTag ? TAGS[primaryTag] : null;
+    const TagIcon = tagConfig?.icon;
 
     return (
       <motion.div
         key={pin.id}
         layout
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        className={`rounded-2xl border border-border bg-card overflow-hidden group relative transition-all hover:shadow-md ${isArchived ? "opacity-60 hover:opacity-100" : ""}`}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className={`rounded-2xl border border-border bg-card overflow-hidden group relative transition-all hover:shadow-md ${
+          isArchived ? "opacity-60 hover:opacity-100" : ""
+        } ${size === "large" ? "col-span-2" : size === "medium" ? "col-span-2 sm:col-span-1" : ""}`}
       >
-        {/* Actions */}
-        <div className="absolute top-3 right-3 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Hover actions */}
+        <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {isArchived ? (
-            <button onClick={() => unarchivePin(pin.id)} className="px-2 py-1 rounded-lg bg-background/80 backdrop-blur-sm text-xs font-body text-muted-foreground hover:text-foreground">Restore</button>
+            <button onClick={() => unarchivePin(pin.id)} className="px-2 py-1 rounded-lg bg-background/80 backdrop-blur-sm text-[10px] font-body text-muted-foreground hover:text-foreground">Restore</button>
           ) : (
-            <button onClick={() => archivePin(pin.id)} className="p-1.5 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-colors" title="Archive">
-              <Archive size={12} />
+            <button onClick={() => archivePin(pin.id)} className="p-1 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Archive size={10} />
             </button>
           )}
-          <button onClick={() => deletePin(pin.id)} className="p-1.5 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive transition-colors" title="Delete">
-            <X size={12} />
+          <button onClick={() => deletePin(pin.id)} className="p-1 rounded-lg bg-background/80 backdrop-blur-sm text-muted-foreground hover:text-destructive transition-colors">
+            <X size={10} />
           </button>
         </div>
 
         {pin.type === "photo" ? (
-          <>
-            <img src={pin.content} alt="" className="w-full object-cover max-h-64" />
-            <div className="p-4">
+          <div className="flex gap-0">
+            <img src={pin.content} alt="" className="w-1/2 object-cover max-h-40" />
+            <div className="flex-1 p-3 flex flex-col justify-center">
               <input type="text" value={pin.caption || ""} onChange={(e) => updateCaption(pin.id, e.target.value)}
-                placeholder="Add a caption..." className="w-full bg-transparent font-body text-sm text-foreground/70 outline-none placeholder:text-muted-foreground/40" />
-              {renderTags(pin.tags)}
+                placeholder="Caption..." className="w-full bg-transparent font-body text-xs text-foreground/70 outline-none placeholder:text-muted-foreground/40" />
+              <p className="font-body text-[10px] text-muted-foreground/40 mt-1">
+                {new Date(pin.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </p>
             </div>
-          </>
+          </div>
         ) : hasChecklist ? (
-          <div className="p-5">
-            {/* Render non-checklist lines as header */}
-            {pin.content.split("\n").filter((l) => !l.startsWith("☐ ") && !l.startsWith("☑ ") && l.trim()).map((line, i) => (
-              <p key={i} className="font-body text-sm text-foreground/85 leading-relaxed mb-2">{line}</p>
-            ))}
-            {/* Progress bar */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                <motion.div
-                  className="h-full rounded-full bg-accent/60"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
-                  transition={{ duration: 0.3 }}
-                />
-              </div>
-              <span className="font-body text-[10px] text-muted-foreground">{completedCount}/{totalCount}</span>
-            </div>
-            {/* Checklist items */}
-            <div className="space-y-1.5">
-              {pin.checklist!.map((ci, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => !isArchived && toggleCheckItem(pin.id, idx)}
-                  className="flex items-center gap-2.5 w-full text-left group/item"
-                >
-                  {ci.checked ? (
-                    <CheckSquare size={15} className="text-accent shrink-0" />
-                  ) : (
-                    <Square size={15} className="text-muted-foreground/40 shrink-0 group-hover/item:text-muted-foreground" />
-                  )}
-                  <span className={`font-body text-sm ${ci.checked ? "line-through text-muted-foreground/50" : "text-foreground/80"}`}>
-                    {ci.text || "..."}
-                  </span>
-                </button>
+          <div className="p-3.5">
+            {/* Header with icon */}
+            <div className="flex items-center gap-2 mb-2">
+              {TagIcon && <TagIcon size={13} className="text-accent/60" />}
+              {pin.content.split("\n").filter((l) => !l.startsWith("☐ ") && !l.startsWith("☑ ") && l.trim()).slice(0, 1).map((line, i) => (
+                <p key={i} className="font-body text-xs font-medium text-foreground/80 truncate">{line}</p>
               ))}
             </div>
-            {renderTags(pin.tags)}
-            <p className="font-body text-xs text-muted-foreground/40 mt-3">
-              {new Date(pin.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-            </p>
+            {/* Mini progress */}
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                <motion.div className="h-full rounded-full bg-accent/50" animate={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }} />
+              </div>
+              <span className="font-body text-[9px] text-muted-foreground/50">{completedCount}/{totalCount}</span>
+            </div>
+            {/* Compact checklist - show max 4 items */}
+            <div className="space-y-1">
+              {pin.checklist!.slice(0, 4).map((ci, idx) => (
+                <button key={idx} onClick={() => !isArchived && toggleCheckItem(pin.id, idx)} className="flex items-center gap-2 w-full text-left group/item">
+                  {ci.checked ? <CheckSquare size={12} className="text-accent shrink-0" /> : <Square size={12} className="text-muted-foreground/30 shrink-0 group-hover/item:text-muted-foreground" />}
+                  <span className={`font-body text-xs truncate ${ci.checked ? "line-through text-muted-foreground/40" : "text-foreground/70"}`}>{ci.text || "..."}</span>
+                </button>
+              ))}
+              {pin.checklist!.length > 4 && (
+                <p className="font-body text-[10px] text-muted-foreground/40 pl-5">+{pin.checklist!.length - 4} more</p>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="p-5">
-            <p className="font-body text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">{pin.content}</p>
-            {renderTags(pin.tags)}
-            <p className="font-body text-xs text-muted-foreground/40 mt-3">
+          <div className="p-3.5">
+            {TagIcon && <TagIcon size={13} className="text-accent/40 mb-1.5" />}
+            <p className="font-body text-xs text-foreground/80 leading-relaxed whitespace-pre-wrap line-clamp-5">{pin.content}</p>
+            <p className="font-body text-[10px] text-muted-foreground/35 mt-2">
               {new Date(pin.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </p>
           </div>
@@ -429,18 +448,22 @@ const Home = () => {
     );
   };
 
-  const renderTags = (tags: string[]) => {
-    if (tags.length === 0) return null;
+  // Render a tag group section
+  const renderTagGroup = (tagKey: string, groupPins: PinItem[], isArchived = false) => {
+    const config = TAGS[tagKey];
+    const Icon = config?.icon;
     return (
-      <div className="flex flex-wrap gap-1 mt-2">
-        {tags.map((tag) => {
-          const config = TAGS[tag];
-          return (
-            <span key={tag} className={`px-2 py-0.5 rounded-full text-[10px] font-body ${config?.color || "bg-muted text-muted-foreground"}`}>
-              #{tag}
-            </span>
-          );
-        })}
+      <div key={tagKey} className="mb-5">
+        <div className="flex items-center gap-2 mb-2">
+          {Icon && <Icon size={13} className="text-muted-foreground/50" />}
+          <span className="font-body text-[11px] tracking-widest text-muted-foreground/50 uppercase">{config?.label || tagKey}</span>
+          <span className="font-body text-[10px] text-muted-foreground/30">{groupPins.length}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <AnimatePresence>
+            {groupPins.map((pin) => renderWidget(pin, isArchived))}
+          </AnimatePresence>
+        </div>
       </div>
     );
   };
@@ -671,15 +694,30 @@ const Home = () => {
                         </div>
                       </div>
 
-                      {/* Single-column pin feed */}
-                      {activePins.length > 0 && (
-                        <div className="space-y-3 mb-8">
-                          <p className="font-body text-xs tracking-widest text-muted-foreground/50 uppercase">Pinned</p>
-                          <AnimatePresence>
-                            {activePins.map((pin) => renderPinCard(pin))}
-                          </AnimatePresence>
-                        </div>
-                      )}
+                      {activePins.length > 0 && (() => {
+                        const { groups, ungrouped } = groupPinsByTag(activePins);
+                        return (
+                          <div className="mb-6">
+                            {Object.entries(groups).map(([tagKey, groupPins]) =>
+                              renderTagGroup(tagKey, groupPins)
+                            )}
+                            {ungrouped.length > 0 && (
+                              <div className="mb-5">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <StickyNote size={13} className="text-muted-foreground/50" />
+                                  <span className="font-body text-[11px] tracking-widest text-muted-foreground/50 uppercase">Notes</span>
+                                  <span className="font-body text-[10px] text-muted-foreground/30">{ungrouped.length}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2.5">
+                                  <AnimatePresence>
+                                    {ungrouped.map((pin) => renderWidget(pin))}
+                                  </AnimatePresence>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
 
                       {/* Empty state */}
                       {activePins.length === 0 && (
@@ -719,14 +757,21 @@ const Home = () => {
                                     ))}
                                   </div>
                                 )}
-                                <div className="space-y-3 mt-3">
-                                  {filteredArchive.map((pin) => renderPinCard(pin, true))}
-                                  {filteredArchive.length === 0 && (
-                                    <div className="text-center py-6">
-                                      <p className="font-body text-xs text-muted-foreground/40">No archived items with this tag</p>
-                                    </div>
-                                  )}
-                                </div>
+                                {(() => {
+                                  const { groups, ungrouped } = groupPinsByTag(filteredArchive);
+                                  return (
+                                    <>
+                                      {Object.entries(groups).map(([tagKey, groupPins]) =>
+                                        renderTagGroup(tagKey, groupPins, true)
+                                      )}
+                                      {ungrouped.length > 0 && (
+                                        <div className="grid grid-cols-2 gap-2.5">
+                                          {ungrouped.map((pin) => renderWidget(pin, true))}
+                                        </div>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </motion.div>
                             )}
                           </AnimatePresence>
