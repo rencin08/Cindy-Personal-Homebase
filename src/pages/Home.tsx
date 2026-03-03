@@ -554,224 +554,465 @@ const Home = () => {
     </motion.div>
   );
 
-  const renderToolbar = () => (
-    <div className="px-4 md:px-10 pt-4 md:pt-6 pb-2 flex items-center justify-between shrink-0">
-      <div className="flex items-center gap-2 md:gap-3">
-        {isMobile ? (
-          <button onClick={() => setMobileSidebarOpen(true)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors">
-            <Menu size={18} />
+  const renderToolbar = () => {
+    if (isMobile) {
+      return (
+        <div className="px-5 pt-5 pb-1 flex items-center justify-between shrink-0">
+          <button onClick={() => setMobileSidebarOpen(true)} className="font-display italic text-lg text-accent">
+            cindy
           </button>
-        ) : (
+          <p className="font-body text-xs tracking-widest text-muted-foreground uppercase">
+            {today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="px-10 pt-6 pb-2 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
           <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card transition-colors">
             {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
-        )}
-        <div className="flex items-center gap-0.5 md:gap-1 bg-card/60 rounded-xl p-1 border border-border">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1.5 rounded-lg font-body text-xs transition-all ${
-                activeTab === tab.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <tab.icon size={13} />
-              <span className={isMobile && tab.id !== activeTab ? "hidden" : ""}>{tab.label}</span>
-            </button>
-          ))}
+          <div className="flex items-center gap-1 bg-card/60 rounded-xl p-1 border border-border">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs transition-all ${
+                  activeTab === tab.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <tab.icon size={13} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <button onClick={shareLink} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-body text-xs text-muted-foreground hover:text-foreground hover:bg-card transition-colors">
+            <Share2 size={13} /> Share
+          </button>
+          <p className="font-body text-xs tracking-widest text-muted-foreground uppercase hidden lg:block">{formattedDate}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2 md:gap-3">
-        <button onClick={shareLink} className="flex items-center gap-1.5 px-2 md:px-3 py-1.5 rounded-lg font-body text-xs text-muted-foreground hover:text-foreground hover:bg-card transition-colors">
-          <Share2 size={13} /> <span className="hidden md:inline">Share</span>
-        </button>
-        <p className="font-body text-xs tracking-widest text-muted-foreground uppercase hidden lg:block">{formattedDate}</p>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderTabContent = () => (
     <>
       {/* ============ TODAY TAB ============ */}
       {activeTab === "today" && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="today">
-          {/* NYC Cityscape Hero */}
-          <div className="relative overflow-hidden" style={{ minHeight: isMobile ? 120 : 160 }}>
-            <div
-              className="absolute inset-0 bg-contain bg-bottom bg-no-repeat opacity-[0.08]"
-              style={{ backgroundImage: `url(${cityscape})` }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/30 to-background" />
-            <div className={`relative mx-auto px-4 md:px-10 pt-4 pb-4 ${isMobile ? "" : "max-w-2xl"}`}>
-              <motion.p className="font-body text-sm text-muted-foreground/60 mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-                {getGreeting()} ☀️
-              </motion.p>
-              <h1 className={`font-display italic text-foreground mb-3 mt-1 ${isMobile ? "text-3xl" : "text-4xl md:text-5xl"}`}>Today</h1>
-              <WritingAvatar />
-            </div>
-          </div>
+          {isMobile ? (
+            /* ===== MOBILE: Journal-style Today ===== */
+            <div className="px-5 pb-8">
+              {/* Big title */}
+              <motion.h1
+                className="font-display italic text-5xl text-foreground mt-2 mb-6"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                Today
+              </motion.h1>
 
-          {/* Single-column feed */}
-          <div className={`mx-auto px-4 md:px-10 ${isMobile ? "" : "max-w-2xl"}`}>
-            {/* Writing area */}
-            <div className="relative mb-5 -mt-2">
-              <div className="rounded-2xl border border-border/60 bg-card/40 p-4 md:p-5 focus-within:border-accent/30 focus-within:bg-card/60 transition-all shadow-sm">
-                <textarea
-                  ref={textareaRef}
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
-                  placeholder="what's on your mind? pick a tag below to get started with a template ✏️"
-                  className={`w-full bg-transparent font-body text-foreground/90 leading-relaxed resize-none outline-none placeholder:text-muted-foreground/35 ${isMobile ? "text-base min-h-[80px]" : "text-base md:text-lg min-h-[100px]"}`}
-                  onKeyDown={(e) => { if (e.key === "Enter" && e.metaKey) saveNote(); }}
-                />
+              {/* Mobile tab switcher: Today / Archive */}
+              <div className="flex mb-5">
+                <div className="flex bg-card rounded-2xl border border-border p-1 w-full">
+                  <button
+                    onClick={() => setShowArchive(false)}
+                    className={`flex-1 py-2.5 rounded-xl font-body text-sm transition-all ${
+                      !showArchive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    Today
+                  </button>
+                  <button
+                    onClick={() => setShowArchive(true)}
+                    className={`flex-1 py-2.5 rounded-xl font-body text-sm transition-all ${
+                      showArchive ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"
+                    }`}
+                  >
+                    Archive
+                  </button>
+                </div>
+              </div>
 
-                {/* Selected tags */}
-                {selectedTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {selectedTags.map((tag) => {
-                      const config = TAGS[tag];
-                      const Icon = config?.icon;
+              {!showArchive ? (
+                <>
+                  {/* Tag pills - horizontal scroll */}
+                  <div className="flex gap-2 overflow-x-auto pb-3 mb-4 -mx-1 px-1 scrollbar-none">
+                    {Object.entries(TAGS).slice(0, 5).map(([key, config]) => {
+                      const Icon = config.icon;
+                      const isSelected = selectedTags.includes(key);
                       return (
-                        <button key={tag} onClick={() => selectTag(tag)}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-body transition-all ${config?.color || "bg-muted text-muted-foreground"}`}>
-                          {Icon && <Icon size={10} />} #{tag} <X size={10} />
+                        <button
+                          key={key}
+                          onClick={() => selectTag(key)}
+                          className={`flex items-center gap-1.5 px-4 py-2 rounded-full font-body text-sm whitespace-nowrap shrink-0 transition-all ${
+                            isSelected
+                              ? `${config.color} ring-1 ring-accent/20`
+                              : "bg-card border border-border text-muted-foreground"
+                          }`}
+                        >
+                          <Icon size={14} />
+                          {config.label.toLowerCase()}
                         </button>
                       );
                     })}
                   </div>
-                )}
 
-                <div className="flex items-center justify-between mt-2 pt-3 border-t border-border/30">
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/50 hover:bg-accent/10 hover:border-accent/30 font-body text-xs text-muted-foreground hover:text-foreground transition-all">
-                      <Camera size={13} /> Photo
-                    </button>
-                    <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={addPhoto} />
-                  </div>
-                  <AnimatePresence>
-                    {noteContent.trim() && (
-                      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="flex items-center gap-2">
-                        {!isMobile && <span className="font-body text-xs text-muted-foreground/40">⌘ + Enter</span>}
-                        <button onClick={saveNote} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent text-accent-foreground font-body text-xs hover:bg-accent/90 transition-colors">
-                          <Plus size={12} /> Pin it
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              {/* Tag shortcuts */}
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {Object.entries(TAGS).map(([key, config]) => {
-                  const Icon = config.icon;
-                  const isSelected = selectedTags.includes(key);
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => selectTag(key)}
-                      className={`flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl font-body text-xs transition-all ${
-                        isSelected
-                          ? `${config.color} ring-1 ring-accent/20 shadow-sm`
-                          : "bg-card/60 text-muted-foreground hover:text-foreground border border-border/40 hover:border-accent/30"
-                      }`}
-                    >
-                      <Icon size={12} />
-                      {config.label}
-                      {config.template && !isSelected && (
-                        <span className="text-[9px] opacity-40 ml-0.5">✦</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {activePins.length > 0 && (() => {
-              const { groups, ungrouped } = groupPinsByTag(activePins);
-              return (
-                <div className="mb-6">
-                  {Object.entries(groups).map(([tagKey, groupPins]) =>
-                    renderTagGroup(tagKey, groupPins)
-                  )}
-                  {ungrouped.length > 0 && (
-                    <div className="mb-5">
-                      <div className="flex items-center gap-2 mb-2">
-                        <StickyNote size={13} className="text-muted-foreground/50" />
-                        <span className="font-body text-[11px] tracking-widest text-muted-foreground/50 uppercase">Notes</span>
-                        <span className="font-body text-[10px] text-muted-foreground/30">{ungrouped.length}</span>
-                      </div>
-                      <div className={`grid gap-2.5 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
-                        <AnimatePresence>
-                          {ungrouped.map((pin) => renderWidget(pin))}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Empty state */}
-            {activePins.length === 0 && (
-              <motion.div className="text-center py-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
-                <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity }}>
-                  <StickyNote size={28} className="text-accent/20 mx-auto mb-3" />
-                </motion.div>
-                <p className="font-body text-sm text-muted-foreground/40">pick a tag above to get started with a template</p>
-                <p className="font-body text-xs text-muted-foreground/25 mt-1">or just start typing — anything goes</p>
-              </motion.div>
-            )}
-
-            {/* Archive */}
-            {archivedPins.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-border/50 pb-8">
-                <button onClick={() => setShowArchive(!showArchive)}
-                  className="flex items-center gap-2 font-body text-xs tracking-widest text-muted-foreground uppercase hover:text-foreground transition-colors w-full">
-                  <Archive size={14} /> Archive ({archivedPins.length})
-                  {showArchive ? <ChevronUp size={14} className="ml-auto" /> : <ChevronDown size={14} className="ml-auto" />}
-                </button>
-                <AnimatePresence>
-                  {showArchive && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                      {archiveTags.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-1.5 mt-4 mb-3">
-                          <button onClick={() => setArchiveFilter(null)}
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-body transition-all ${!archiveFilter ? "bg-accent/15 text-accent" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                            All
-                          </button>
-                          {archiveTags.map((tag) => (
-                            <button key={tag} onClick={() => setArchiveFilter(archiveFilter === tag ? null : tag)}
-                              className={`px-2.5 py-1 rounded-full text-[11px] font-body transition-all ${
-                                archiveFilter === tag ? `${TAGS[tag]?.color || "bg-muted text-muted-foreground"} ring-1 ring-accent/30` : "bg-muted/50 text-muted-foreground hover:bg-muted"
-                              }`}>
-                              #{tag}
+                  {/* Minimal input */}
+                  <motion.div
+                    className="rounded-2xl border border-border bg-card p-4 mb-6"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                  >
+                    <textarea
+                      ref={textareaRef}
+                      value={noteContent}
+                      onChange={(e) => setNoteContent(e.target.value)}
+                      placeholder="What's on your mind..."
+                      className="w-full bg-transparent font-display italic text-lg text-foreground/80 leading-relaxed resize-none outline-none placeholder:text-muted-foreground/30 min-h-[60px]"
+                      onKeyDown={(e) => { if (e.key === "Enter" && e.metaKey) saveNote(); }}
+                    />
+                    {selectedTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {selectedTags.map((tag) => {
+                          const config = TAGS[tag];
+                          const Icon = config?.icon;
+                          return (
+                            <button key={tag} onClick={() => selectTag(tag)}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-body transition-all ${config?.color || "bg-muted text-muted-foreground"}`}>
+                              {Icon && <Icon size={10} />} #{tag} <X size={10} />
                             </button>
-                          ))}
-                        </div>
-                      )}
-                      {(() => {
-                        const { groups, ungrouped } = groupPinsByTag(filteredArchive);
-                        return (
-                          <>
-                            {Object.entries(groups).map(([tagKey, groupPins]) =>
-                              renderTagGroup(tagKey, groupPins, true)
-                            )}
-                            {ungrouped.length > 0 && (
-                              <div className={`grid gap-2.5 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
-                                {ungrouped.map((pin) => renderWidget(pin, true))}
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border font-body text-sm text-muted-foreground">
+                        <Camera size={14} /> Photo
+                      </button>
+                      <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={addPhoto} />
+                      <AnimatePresence>
+                        {noteContent.trim() && (
+                          <motion.button
+                            onClick={saveNote}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-foreground text-background font-body text-sm ml-auto"
+                          >
+                            <Plus size={14} /> Pin
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+
+                  {/* Widget grid - 2 columns, bigger cards */}
+                  {activePins.length > 0 && (
+                    <motion.div
+                      className="grid grid-cols-2 gap-3"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      <AnimatePresence>
+                        {activePins.map((pin) => {
+                          const hasChecklist = pin.checklist && pin.checklist.length > 0;
+                          const completedCount = pin.checklist?.filter((c) => c.checked).length || 0;
+                          const totalCount = pin.checklist?.length || 0;
+                          const primaryTag = pin.tags[0];
+                          const tagConfig = primaryTag ? TAGS[primaryTag] : null;
+                          const TagIcon = tagConfig?.icon;
+                          const isLarge = pin.type === "photo" || (pin.content.length > 150);
+
+                          return (
+                            <motion.div
+                              key={pin.id}
+                              layout
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              className={`rounded-2xl border border-border bg-card overflow-hidden group relative ${isLarge ? "col-span-2" : ""}`}
+                            >
+                              {/* Swipe-to-archive hint */}
+                              <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => archivePin(pin.id)} className="p-1.5 rounded-full bg-background/80 backdrop-blur-sm text-muted-foreground">
+                                  <Archive size={12} />
+                                </button>
+                                <button onClick={() => deletePin(pin.id)} className="p-1.5 rounded-full bg-background/80 backdrop-blur-sm text-muted-foreground">
+                                  <X size={12} />
+                                </button>
                               </div>
-                            )}
-                          </>
-                        );
-                      })()}
+
+                              {pin.type === "photo" ? (
+                                <div>
+                                  <img src={pin.content} alt="" className="w-full object-cover h-48 rounded-t-2xl" />
+                                  <div className="p-4">
+                                    <p className="font-body text-xs tracking-widest text-muted-foreground/50 uppercase mb-1">Photo</p>
+                                    <input type="text" value={pin.caption || ""} onChange={(e) => updateCaption(pin.id, e.target.value)}
+                                      placeholder="Add caption..." className="w-full bg-transparent font-body text-sm text-foreground outline-none placeholder:text-muted-foreground/30" />
+                                  </div>
+                                </div>
+                              ) : hasChecklist ? (
+                                <div className="p-4">
+                                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center mb-3">
+                                    <Check size={16} className="text-accent" />
+                                  </div>
+                                  <p className="font-body text-[10px] tracking-[0.15em] text-accent uppercase mb-2">
+                                    {tagConfig?.label || "Tasks"}
+                                  </p>
+                                  {/* Title from non-checkbox lines */}
+                                  {pin.content.split("\n").filter((l) => !l.startsWith("☐ ") && !l.startsWith("☑ ") && l.trim()).slice(0, 1).map((line, i) => (
+                                    <h3 key={i} className="font-display text-lg text-foreground mb-3 leading-snug">{line}</h3>
+                                  ))}
+                                  <div className="space-y-2.5">
+                                    {pin.checklist!.slice(0, 5).map((ci, idx) => (
+                                      <button key={idx} onClick={() => toggleCheckItem(pin.id, idx)} className="flex items-center gap-3 w-full text-left">
+                                        {ci.checked ? (
+                                          <div className="w-5 h-5 rounded-md bg-accent flex items-center justify-center shrink-0">
+                                            <Check size={12} className="text-background" />
+                                          </div>
+                                        ) : (
+                                          <div className="w-5 h-5 rounded-md border-2 border-border shrink-0" />
+                                        )}
+                                        <span className={`font-body text-sm ${ci.checked ? "line-through text-muted-foreground/40" : "text-foreground/80"}`}>
+                                          {ci.text || "..."}
+                                        </span>
+                                      </button>
+                                    ))}
+                                    {pin.checklist!.length > 5 && (
+                                      <p className="font-body text-xs text-muted-foreground/40 pl-8">+{pin.checklist!.length - 5} more</p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="p-4">
+                                  {TagIcon && (
+                                    <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center mb-3">
+                                      <TagIcon size={16} className="text-accent/60" />
+                                    </div>
+                                  )}
+                                  <p className="font-body text-[10px] tracking-[0.15em] text-accent uppercase mb-2">
+                                    {tagConfig?.label || "Note"}
+                                  </p>
+                                  {/* First line as title, rest as body */}
+                                  {(() => {
+                                    const lines = pin.content.split("\n");
+                                    const title = lines[0];
+                                    const body = lines.slice(1).join("\n").trim();
+                                    return (
+                                      <>
+                                        <h3 className="font-display text-lg text-foreground mb-2 leading-snug line-clamp-2">{title}</h3>
+                                        {body && <p className="font-body text-sm text-muted-foreground leading-relaxed line-clamp-4">{body}</p>}
+                                      </>
+                                    );
+                                  })()}
+                                  <ArrowRight size={16} className="text-muted-foreground/30 mt-3" />
+                                </div>
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
                     </motion.div>
                   )}
-                </AnimatePresence>
+
+                  {activePins.length === 0 && (
+                    <motion.div className="text-center py-16" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                      <p className="font-display italic text-2xl text-muted-foreground/25 mb-2">nothing yet</p>
+                      <p className="font-body text-sm text-muted-foreground/30">tap a tag above or just start writing</p>
+                    </motion.div>
+                  )}
+                </>
+              ) : (
+                /* Archive view */
+                <div>
+                  {archiveTags.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 mb-4">
+                      <button onClick={() => setArchiveFilter(null)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-body transition-all ${!archiveFilter ? "bg-foreground text-background" : "bg-card border border-border text-muted-foreground"}`}>
+                        All
+                      </button>
+                      {archiveTags.map((tag) => (
+                        <button key={tag} onClick={() => setArchiveFilter(archiveFilter === tag ? null : tag)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-body transition-all ${
+                            archiveFilter === tag ? "bg-foreground text-background" : "bg-card border border-border text-muted-foreground"
+                          }`}>
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-3">
+                    {filteredArchive.map((pin) => renderWidget(pin, true))}
+                  </div>
+                  {filteredArchive.length === 0 && (
+                    <p className="text-center font-body text-sm text-muted-foreground/30 py-12">no archived pins</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            /* ===== DESKTOP: Keep existing layout ===== */
+            <>
+              <div className="relative overflow-hidden" style={{ minHeight: 160 }}>
+                <div className="absolute inset-0 bg-contain bg-bottom bg-no-repeat opacity-[0.08]" style={{ backgroundImage: `url(${cityscape})` }} />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/0 via-background/30 to-background" />
+                <div className="relative max-w-2xl mx-auto px-10 pt-4 pb-4">
+                  <motion.p className="font-body text-sm text-muted-foreground/60 mb-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+                    {getGreeting()} ☀️
+                  </motion.p>
+                  <h1 className="font-display italic text-4xl md:text-5xl text-foreground mb-3 mt-1">Today</h1>
+                  <WritingAvatar />
+                </div>
               </div>
-            )}
-          </div>
+              <div className="max-w-2xl mx-auto px-10">
+                {/* Desktop writing area */}
+                <div className="relative mb-5 -mt-2">
+                  <div className="rounded-2xl border border-border/60 bg-card/40 p-5 focus-within:border-accent/30 focus-within:bg-card/60 transition-all shadow-sm">
+                    <textarea
+                      ref={textareaRef}
+                      value={noteContent}
+                      onChange={(e) => setNoteContent(e.target.value)}
+                      placeholder="what's on your mind? pick a tag below to get started with a template ✏️"
+                      className="w-full bg-transparent font-body text-base md:text-lg text-foreground/90 leading-relaxed resize-none outline-none placeholder:text-muted-foreground/35 min-h-[100px]"
+                      onKeyDown={(e) => { if (e.key === "Enter" && e.metaKey) saveNote(); }}
+                    />
+                    {selectedTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {selectedTags.map((tag) => {
+                          const config = TAGS[tag];
+                          const Icon = config?.icon;
+                          return (
+                            <button key={tag} onClick={() => selectTag(tag)}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-body transition-all ${config?.color || "bg-muted text-muted-foreground"}`}>
+                              {Icon && <Icon size={10} />} #{tag} <X size={10} />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between mt-2 pt-3 border-t border-border/30">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => fileInputRef.current?.click()}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/50 hover:bg-accent/10 hover:border-accent/30 font-body text-xs text-muted-foreground hover:text-foreground transition-all">
+                          <Camera size={13} /> Photo
+                        </button>
+                        <input ref={fileInputRef} type="file" accept="image/*" multiple capture="environment" className="hidden" onChange={addPhoto} />
+                      </div>
+                      <AnimatePresence>
+                        {noteContent.trim() && (
+                          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="flex items-center gap-2">
+                            <span className="font-body text-xs text-muted-foreground/40">⌘ + Enter</span>
+                            <button onClick={saveNote} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-accent text-accent-foreground font-body text-xs hover:bg-accent/90 transition-colors">
+                              <Plus size={12} /> Pin it
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {Object.entries(TAGS).map(([key, config]) => {
+                      const Icon = config.icon;
+                      const isSelected = selectedTags.includes(key);
+                      return (
+                        <button key={key} onClick={() => selectTag(key)}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-body text-xs transition-all ${
+                            isSelected ? `${config.color} ring-1 ring-accent/20 shadow-sm` : "bg-card/60 text-muted-foreground hover:text-foreground border border-border/40 hover:border-accent/30"
+                          }`}>
+                          <Icon size={12} /> {config.label}
+                          {config.template && !isSelected && <span className="text-[9px] opacity-40 ml-0.5">✦</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {activePins.length > 0 && (() => {
+                  const { groups, ungrouped } = groupPinsByTag(activePins);
+                  return (
+                    <div className="mb-6">
+                      {Object.entries(groups).map(([tagKey, groupPins]) => renderTagGroup(tagKey, groupPins))}
+                      {ungrouped.length > 0 && (
+                        <div className="mb-5">
+                          <div className="flex items-center gap-2 mb-2">
+                            <StickyNote size={13} className="text-muted-foreground/50" />
+                            <span className="font-body text-[11px] tracking-widest text-muted-foreground/50 uppercase">Notes</span>
+                            <span className="font-body text-[10px] text-muted-foreground/30">{ungrouped.length}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            <AnimatePresence>{ungrouped.map((pin) => renderWidget(pin))}</AnimatePresence>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {activePins.length === 0 && (
+                  <motion.div className="text-center py-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>
+                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 3, repeat: Infinity }}>
+                      <StickyNote size={28} className="text-accent/20 mx-auto mb-3" />
+                    </motion.div>
+                    <p className="font-body text-sm text-muted-foreground/40">pick a tag above to get started with a template</p>
+                    <p className="font-body text-xs text-muted-foreground/25 mt-1">or just start typing — anything goes</p>
+                  </motion.div>
+                )}
+
+                {archivedPins.length > 0 && (
+                  <div className="mt-6 pt-4 border-t border-border/50 pb-8">
+                    <button onClick={() => setShowArchive(!showArchive)}
+                      className="flex items-center gap-2 font-body text-xs tracking-widest text-muted-foreground uppercase hover:text-foreground transition-colors w-full">
+                      <Archive size={14} /> Archive ({archivedPins.length})
+                      {showArchive ? <ChevronUp size={14} className="ml-auto" /> : <ChevronDown size={14} className="ml-auto" />}
+                    </button>
+                    <AnimatePresence>
+                      {showArchive && (
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                          {archiveTags.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-4 mb-3">
+                              <button onClick={() => setArchiveFilter(null)}
+                                className={`px-2.5 py-1 rounded-full text-[11px] font-body transition-all ${!archiveFilter ? "bg-accent/15 text-accent" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+                                All
+                              </button>
+                              {archiveTags.map((tag) => (
+                                <button key={tag} onClick={() => setArchiveFilter(archiveFilter === tag ? null : tag)}
+                                  className={`px-2.5 py-1 rounded-full text-[11px] font-body transition-all ${
+                                    archiveFilter === tag ? `${TAGS[tag]?.color || "bg-muted text-muted-foreground"} ring-1 ring-accent/30` : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                                  }`}>
+                                  #{tag}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {(() => {
+                            const { groups, ungrouped } = groupPinsByTag(filteredArchive);
+                            return (
+                              <>
+                                {Object.entries(groups).map(([tagKey, groupPins]) => renderTagGroup(tagKey, groupPins, true))}
+                                {ungrouped.length > 0 && (
+                                  <div className="grid grid-cols-2 gap-2.5">
+                                    {ungrouped.map((pin) => renderWidget(pin, true))}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </motion.div>
       )}
 
@@ -918,8 +1159,23 @@ const Home = () => {
         {isMobile ? (
           <div className="h-full overflow-hidden bg-background flex flex-col">
             {renderToolbar()}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pb-20">
               {renderTabContent()}
+            </div>
+            {/* Bottom tab bar */}
+            <div className="fixed bottom-0 left-0 right-0 z-30 bg-card/90 backdrop-blur-md border-t border-border px-6 py-2 flex items-center justify-around safe-area-bottom">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex flex-col items-center gap-1 py-1.5 px-4 rounded-xl transition-all ${
+                    activeTab === tab.id ? "text-foreground" : "text-muted-foreground/50"
+                  }`}
+                >
+                  <tab.icon size={20} />
+                  <span className="font-body text-[10px]">{tab.label}</span>
+                </button>
+              ))}
             </div>
           </div>
         ) : (
