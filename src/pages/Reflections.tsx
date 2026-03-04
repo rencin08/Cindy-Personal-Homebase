@@ -7,10 +7,26 @@ import type { PinItem } from "@/hooks/use-journal";
 import { useAuth } from "@/hooks/use-auth";
 import mammoth from "mammoth";
 
-const REFLECTION_TAGS: Record<string, { label: string; icon: any; accent: string }> = {
-  journal: { label: "Journal", icon: BookMarked, accent: "bg-primary/10 text-primary" },
-  note: { label: "Note", icon: Pen, accent: "bg-muted text-muted-foreground" },
-  random: { label: "Random", icon: Sparkles, accent: "bg-secondary text-secondary-foreground" },
+// Each tag gets a warm, distinct color palette for the "book cover" look
+const REFLECTION_TAGS: Record<string, { label: string; icon: any; accent: string; cover: string; stripe: string }> = {
+  journal: {
+    label: "Journal", icon: BookMarked,
+    accent: "bg-[hsl(25,60%,92%)] text-[hsl(25,50%,35%)]",
+    cover: "bg-gradient-to-br from-[hsl(25,70%,96%)] to-[hsl(25,40%,88%)] border-[hsl(25,40%,78%)]",
+    stripe: "bg-[hsl(25,55%,55%)]",
+  },
+  note: {
+    label: "Note", icon: Pen,
+    accent: "bg-[hsl(200,40%,92%)] text-[hsl(200,40%,35%)]",
+    cover: "bg-gradient-to-br from-[hsl(200,50%,96%)] to-[hsl(200,30%,89%)] border-[hsl(200,30%,78%)]",
+    stripe: "bg-[hsl(200,45%,55%)]",
+  },
+  random: {
+    label: "Random", icon: Sparkles,
+    accent: "bg-[hsl(340,40%,93%)] text-[hsl(340,35%,40%)]",
+    cover: "bg-gradient-to-br from-[hsl(340,45%,96%)] to-[hsl(340,30%,89%)] border-[hsl(340,25%,80%)]",
+    stripe: "bg-[hsl(340,40%,55%)]",
+  },
 };
 
 const Reflections = () => {
@@ -232,22 +248,26 @@ const Reflections = () => {
                       return (
                         <motion.div key={pin.id} onClick={() => setExpandedPinId(pin.id)}
                           initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
-                          className="rounded-2xl border border-border bg-card p-4 cursor-pointer hover:bg-muted/30 hover:border-foreground/10 transition-all group flex flex-col">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${config?.accent || "bg-muted text-muted-foreground"}`}>
-                              <FileText size={13} />
+                          className={`rounded-2xl border overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-0.5 transition-all group flex flex-col ${config?.cover || "bg-card border-border"}`}>
+                          {/* Color stripe at top — like a book spine */}
+                          <div className={`h-1.5 w-full ${config?.stripe || "bg-muted-foreground/20"}`} />
+                          <div className="p-4 flex flex-col flex-1">
+                            <div className="flex items-start justify-between mb-2.5">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config?.accent || "bg-muted text-muted-foreground"}`}>
+                                <FileText size={14} />
+                              </div>
+                              <ChevronLeft size={12} className="text-muted-foreground/20 rotate-180 group-hover:text-foreground/50 transition-colors mt-0.5" />
                             </div>
-                            <ChevronLeft size={12} className="text-muted-foreground/20 rotate-180 group-hover:text-muted-foreground transition-colors mt-0.5" />
-                          </div>
-                          <p className="font-body text-sm font-medium text-foreground line-clamp-2 mb-1.5 leading-snug">{title}</p>
-                          {preview && (
-                            <p className="font-body text-xs text-muted-foreground/40 line-clamp-3 leading-relaxed mb-3 flex-1">{preview}</p>
-                          )}
-                          <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/20">
-                            <p className="font-body text-[10px] text-muted-foreground/30">
-                              {new Date(pin.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                            </p>
-                            <p className="font-body text-[10px] text-muted-foreground/30">{wordCount} words</p>
+                            <p className="font-body text-sm font-medium text-foreground line-clamp-2 mb-1.5 leading-snug">{title}</p>
+                            {preview && (
+                              <p className="font-body text-xs text-foreground/35 line-clamp-3 leading-relaxed mb-3 flex-1">{preview}</p>
+                            )}
+                            <div className="flex items-center justify-between mt-auto pt-2 border-t border-foreground/5">
+                              <p className="font-body text-[10px] text-foreground/30">
+                                {new Date(pin.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </p>
+                              <p className="font-body text-[10px] text-foreground/30">{wordCount} words</p>
+                            </div>
                           </div>
                         </motion.div>
                       );
